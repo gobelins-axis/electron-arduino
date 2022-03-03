@@ -1,10 +1,13 @@
 const { app, BrowserWindow } = require('electron')
-const arduinoApp = require('./arduinoApp.js');
 const {SerialPort} = require('serialport');
 const { ipcMain } = require('electron')
 require('dotenv').config();
-
 const path = require('path')
+
+try {
+    require('electron-reloader')(module)
+} catch (_) {}
+
 const createWindow = () => {
     const win = new BrowserWindow({
         width: 800,
@@ -13,17 +16,20 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js')
         }
     })
-    win.loadFile('index.html')
+    win.loadURL('https://google.com')
 }
+
 
 app.whenReady().then(() => {
     createWindow()
 })
 
+// Sur Windows, killer le process quand on ferme la fenêtre
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
 
+// Sur macOS, quand on ferme la fenêtre le processus reste dans le dock
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
