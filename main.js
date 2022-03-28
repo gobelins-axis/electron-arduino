@@ -3,12 +3,6 @@ const {SerialPort} = require('serialport');
 const { ipcMain } = require('electron')
 require('dotenv').config();
 const { ReadlineParser } = require('@serialport/parser-readline')
-
-// try {
-//     require('electron-reloader')(module)
-// } catch (_) {}
-
-
 const path = require('path')
 
 const createWindow = () => {
@@ -16,31 +10,42 @@ const createWindow = () => {
         width: 1200,
         height: 900,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            // contextIsolation: true,
+            enableRemoteModule: true,
         }
     })
-    win.loadFile('index.html')
-    // win.webContents.openDevTools();
+    // win.loadURL('https://serge-bocancea.fr/arcade.html')
+
+    win.loadFile("external/arcade.html")
+    win.webContents.openDevTools();
+    win.once('ready-to-show', () => {
+        win.show()
+      })
     return win;
 }
 
 const createSerialPort = (win) => {
     const port = new SerialPort({path: process.env.PORT, baudRate: 9600 });
-    const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+    const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
     parser.on('data', (data) => {
         if(data.localeCompare("first") === 0){
-            win.webContents.send('btnClick', 'btnLeft')
+            win.webContents.send('keydown', 'a')
+        } else {
+            win.webContents.send('keyup', 'a')
         }
         if(data.localeCompare("second") === 0){
-            win.webContents.send('btnClick', 'btnRight')
+            win.webContents.send('keydown', 'b')
+        }else {
+            win.webContents.send('keyup', 'b')
         }
     })
     return port;
 }
 
 app.whenReady().then(() => {
-    const win = createWindow()
-    const serialPort = createSerialPort(win)
+    const win = createWindow();
+    createSerialPort(win);
 })
 
 app.on('window-all-closed', () => {
@@ -50,12 +55,3 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
-
-
-// Interact with arduino
-const setLedColor = (color) => {
-    port.write(color, (err) => {
-        if (err) return console.log('Error on write: ', err.message);
-        console.log('message written');
-    });
-}
