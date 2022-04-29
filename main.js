@@ -33,13 +33,13 @@ const createSerialPort = (win) => {
     const port = new SerialPort({path: process.env.PORT, baudRate: 9600 });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
     parser.on('data', (data) => {
-        if(!data.includes("x:") && !data.includes("y:")) return;
-        const id = parseInt(data.split('_')[0].split(':')[1]);
-        const x = data.split('_')[1].split(':')[1];
-        const y = data.split('_')[2].split(':')[1];
+        if(!data.includes("id:1") && !data.includes("id:2") && !data.includes("x:") && !data.includes("y:")) return;
+        const joystickId = parseInt(data.split('_')[0].split(':')[1]);
+        const joystickX = data.split('_')[1].split(':')[1];
+        const joystickY = data.split('_')[2].split(':')[1];
 
-        const normalizedPosition = joystickNormalizedPosition(x, y);
-        win.webContents.send('joystick:move', {position: normalizedPosition, id})
+        const normalizedPosition = joystickNormalizedPosition(joystickX, joystickY);
+        win.webContents.send('joystick:move', {joystickId, position: normalizedPosition})
     })
     return port;
 }
