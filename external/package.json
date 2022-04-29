@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "arcade-prototype": "github:arcade-feu/arcade-prototype"
+    "arcade-api": "github:arcade-feu/arcade-api"
   }
 }

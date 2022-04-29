@@ -1,8 +1,11 @@
-// import ArcadePrototype from './lib.js'
+import Arcade from "../node_modules/arcade-api/build/bundle.js";
+
+console.log(Arcade);
 
 window.addEventListener("DOMContentLoaded", () => {
     window.__arcadeFeu.registerKey('a', 'ArrowLeft');
     window.__arcadeFeu.registerKey('b', 'ArrowRight');
+
 
     window.__arcadeFeu.addEventListener("keydown", (e) => {
         if(e.machineKey === "a"){

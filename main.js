@@ -5,19 +5,23 @@ require('dotenv').config();
 const { ReadlineParser } = require('@serialport/parser-readline')
 const path = require('path')
 
+
+const UPPER_RES_BOUND = 1023;
+const LOWER_RES_BOUND = 0;
+
 const createWindow = () => {
     const win = new BrowserWindow({
         width: 1200,
         height: 900,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
-            // contextIsolation: true,
+            contextIsolation: false,
             enableRemoteModule: true,
         }
     })
-    // win.loadURL('https://serge-bocancea.fr/arcade.html')
+    win.loadURL('http://0.0.0.0:8080')
 
-    win.loadFile("external/arcade.html")
+    // win.loadFile("external/arcade.html")
     win.webContents.openDevTools();
     win.once('ready-to-show', () => {
         win.show()
@@ -29,16 +33,13 @@ const createSerialPort = (win) => {
     const port = new SerialPort({path: process.env.PORT, baudRate: 9600 });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
     parser.on('data', (data) => {
-        if(data.localeCompare("first") === 0){
-            win.webContents.send('keydown', 'a')
-        } else {
-            win.webContents.send('keyup', 'a')
-        }
-        if(data.localeCompare("second") === 0){
-            win.webContents.send('keydown', 'b')
-        }else {
-            win.webContents.send('keyup', 'b')
-        }
+        if(!data.includes("x:") && !data.includes("y:")) return;
+        const id = parseInt(data.split('_')[0].split(':')[1]);
+        const x = data.split('_')[1].split(':')[1];
+        const y = data.split('_')[2].split(':')[1];
+
+        const normalizedPosition = joystickNormalizedPosition(x, y);
+        win.webContents.send('joystick:move', {position: normalizedPosition, id})
     })
     return port;
 }
@@ -55,3 +56,27 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
+
+const joystickNormalizedPosition = (x, y) => {
+    const newX = map(x, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1) * -1;
+    const newY = map(y, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1) * -1;
+    const distanceFromCenter = distance(newX, newY, 0);
+    if(distanceFromCenter < 0.05) {
+        return {
+            x: 0,
+            y: 0,
+        };
+    }
+    return {
+        x: newX,
+        y: newY,
+    };
+}
+
+const map = (axisValue, in_min, in_max, out_min, out_max) => {
+    return (axisValue - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  }
+
+const distance = (x, y, maxValue) => {  
+    return (Math.sqrt((maxValue - x) * (maxValue - x)) + (maxValue - y) * (maxValue - y));
+  }

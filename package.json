@@ -17,6 +17,6 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^10.3.0",
-    "arcade-prototype": "github:arcade-feu/arcade-prototype"
+    "arcade-api": "github:arcade-feu/arcade-api"
   }
 }
