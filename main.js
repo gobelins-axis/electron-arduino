@@ -33,13 +33,20 @@ const createSerialPort = (win) => {
     const port = new SerialPort({path: process.env.PORT, baudRate: 9600 });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
     parser.on('data', (data) => {
-        if(!data.includes("id:1") && !data.includes("id:2") && !data.includes("x:") && !data.includes("y:")) return;
-        const joystickId = parseInt(data.split('_')[0].split(':')[1]);
-        const joystickX = data.split('_')[1].split(':')[1];
-        const joystickY = data.split('_')[2].split(':')[1];
+        if(data.includes("buttonName:") && data.includes("buttonState:")){
+            const buttonName = data.split('_')[0].split(':')[1];
+            const buttonState = data.split('_')[1].split(':')[1];
+            win.webContents.send(buttonState, buttonName);
+        }
 
-        const normalizedPosition = joystickNormalizedPosition(joystickX, joystickY);
-        win.webContents.send('joystick:move', {joystickId, position: normalizedPosition})
+        if(data.includes("joystickId:1") || data.includes("joystickId:2")) {
+            const joystickId = parseInt(data.split('_')[0].split(':')[1]);
+            const joystickX = data.split('_')[1].split(':')[1];
+            const joystickY = data.split('_')[2].split(':')[1];
+            
+            const normalizedPosition = joystickNormalizedPosition(joystickX, joystickY);
+            win.webContents.send('joystick:move', {joystickId, position: normalizedPosition})
+        }
     })
     return port;
 }
@@ -58,8 +65,8 @@ app.on('activate', () => {
 })
 
 const joystickNormalizedPosition = (x, y) => {
-    const newX = map(x, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1) * -1;
-    const newY = map(y, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1) * -1;
+    const newX = map(x, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1);
+    const newY = map(y, LOWER_RES_BOUND, UPPER_RES_BOUND, -1, 1);
     const distanceFromCenter = distance(newX, newY, 0);
     if(distanceFromCenter < 0.05) {
         return {
