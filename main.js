@@ -3,10 +3,11 @@ const {SerialPort} = require('serialport');
 const { ipcMain } = require('electron')
 require('dotenv').config();
 const path = require('path')
+const { getArduinoBoardPort } = require('utils');
 
-try {
-    require('electron-reloader')(module)
-} catch (_) {}
+// try {
+//     require('electron-reloader')(module)
+// } catch (_) {}
 
 const { ReadlineParser } = require('@serialport/parser-readline')
 
@@ -19,28 +20,30 @@ const createWindow = () => {
             contextIsolation: false,
             enableRemoteModule: true,
         }
-    })
-    win.loadURL('http://0.0.0.0:8080')
+    });
+
+    win.loadURL('http://localhost:3000');
 
     // win.loadFile("external/arcade.html")
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
     win.once('ready-to-show', () => {
         win.show()
       })
     return win;
 }
 
-const createSerialPort = (win) => {
-    const port = new SerialPort({path: process.env.PORT, baudRate: 9600 });
+const createSerialPort = (win, arduinoPort) => {
+    const port = new SerialPort({path: arduinoPort, baudRate: 9600 });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
     parser.on('data', (data) => {
+        console.log(data);
         if(data.includes("buttonName:") && data.includes("buttonState:")){
             const buttonName = data.split('_')[0].split(':')[1];
             const buttonState = data.split('_')[1].split(':')[1];
             win.webContents.send(buttonState, buttonName);
         }
 
-        if(data.includes("joystickId:1") || data.includes("joystickId:2")) {
+        if(data.includes("id:1") || data.includes("id:2")) {
             const joystickId = parseInt(data.split('_')[0].split(':')[1]);
             const joystickX = data.split('_')[1].split(':')[1];
             const joystickY = data.split('_')[2].split(':')[1];
@@ -55,7 +58,14 @@ const createSerialPort = (win) => {
 
 app.whenReady().then(() => {
     const win = createWindow();
-    createSerialPort(win);
+    getArduinoBoardPort().then(
+        (port) => {
+            createSerialPort(win, port);
+        },
+        (error) => {
+            console.log(error);
+        },
+    )
 })
 
 // Sur Windows, killer le process quand on ferme la fenêtre
